@@ -1,0 +1,4 @@
+task: deploy tomacat based container using jenkins pipeline. 
+task: pull image from docker registry and build container using jenkinspipeline
+task: build containers wordpress and mysql container with volumes using parameter pipeline.
+task: use example2 pipeline attach docker volume in parameter menu. and create volume using pipeline.
