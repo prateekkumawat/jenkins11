@@ -1,0 +1,70 @@
+pipeline {
+    agent {
+        label 'devops'
+    }
+    environment  {
+        SCANNER_HOME=tool 'sonar-scanner'
+    }
+    stages {
+        stage('Cleaning Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('Checkout from Git') {
+            steps {
+                git url:'https://github.com/prateekkumawat/jenkins11.git', branch:'terraformdeploy'
+            }
+        }
+        stage('Sonarqube Analysis ') {
+            steps {
+                dir('terraform/') {
+                    withSonarQubeEnv('sonar-server') {
+                        sh ''' $SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectName=terraform-ci-secure \
+                        -Dsonar.projectKey=terraform-ci-secure '''
+                    }
+                }
+            }
+        }
+        stage('QualityGate') {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
+                }
+            }
+        }
+        stage('OWASP Scan') {
+            steps {
+                dir('terraform/') {
+                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                }
+            }
+        }
+
+       stage("terraform Init"){
+          steps { 
+                dir('terraform/') {
+                    sh 'terraform init'
+                }     
+            }
+        }
+
+      stage("terraform plan"){
+            steps {
+                dir('terraform/') {
+                    sh 'terraform plan'
+               }   
+            }
+        } 
+
+      stage("terraform apply") { 
+            steps { 
+                dir('terraform/') {
+                    sh 'terraform apply --auto-approve'
+                }   
+            }
+        }
+    }
+}
